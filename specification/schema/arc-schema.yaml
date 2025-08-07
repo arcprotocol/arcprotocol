@@ -1,0 +1,1381 @@
+openapi: 3.0.3
+info:
+  title: ARC Protocol - Agent Remote Communication
+  version: "1.0"
+  description: |
+    ARC (Agent Remote Communication) is the first RPC protocol that solves multi-agent 
+    deployment complexity with built-in agent routing, load balancing, and workflow tracing. 
+    Deploy hundreds of different agent types on a single endpoint with zero infrastructure overhead.
+    
+    ## Key Features
+    - Single endpoint supports multiple agents with built-in routing
+    - Load balancing ready via requestAgent/targetAgent routing  
+    - Complex multi-agent workflows with automatic routing
+    - End-to-end workflow tracing via traceId
+    - OAuth2 scopes for fine-grained agent permissions
+    
+    ## How It Works
+    All communication happens through the `/arc` endpoint using POST requests. The `method` field 
+    in the request body determines which operation to perform. This documentation shows each method 
+    as a separate path for clarity, but they all use the same `/arc` endpoint.
+    
+  contact:
+    name: ARC Protocol Support
+    url: https://arc-protocol.org
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.example.com/arc
+    description: Production ARC endpoint
+  - url: http://localhost:8080/arc
+    description: Development ARC endpoint
+
+paths:
+  # Task Methods - Asynchronous agent operations
+  /arc/task.create:
+    post:
+      tags: ["Task Methods"]
+      summary: Create a new asynchronous task
+      description: |
+        Initiate a new asynchronous task with an agent. Use when you want to delegate work 
+        that may take time to complete (e.g., document analysis, report generation).
+        
+        **Note**: This is a logical path. All requests actually go to `/arc` with method "task.create".
+      operationId: taskCreate
+      security:
+        - OAuth2: ["arc.task.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.create"]
+                    params:
+                      $ref: '#/components/schemas/TaskCreateParams'
+            example:
+              arc: "1.0"
+              id: "req_001"
+              method: "task.create"
+              requestAgent: "user-interface-01"
+              targetAgent: "document-analyzer-01"
+              traceId: "workflow_doc_analysis_123"
+              params:
+                initialMessage:
+                  role: "user"
+                  parts:
+                    - type: "TextPart"
+                      content: "Analyze the quarterly financial report"
+                priority: "HIGH"
+                metadata:
+                  deadline: "2024-01-15T17:00:00Z"
+                  department: "finance"
+      responses:
+        '200':
+          description: Task created successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TaskResult'
+              example:
+                arc: "1.0"
+                id: "req_001"
+                responseAgent: "document-analyzer-01"
+                targetAgent: "user-interface-01"
+                traceId: "workflow_doc_analysis_123"
+                result:
+                  type: "task"
+                  task:
+                    taskId: "task-12345"
+                    status: "SUBMITTED"
+                    createdAt: "2024-01-15T10:30:00Z"
+                error: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /arc/task.send:
+    post:
+      tags: ["Task Methods"]
+      summary: Send a message to an existing task
+      description: |
+        Send additional message to an existing task. **Only used when the task status is `INPUT_REQUIRED`** - 
+        meaning the agent needs more information from you to continue processing the task.
+      operationId: taskSend
+      security:
+        - OAuth2: ["arc.task.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.send"]
+                    params:
+                      $ref: '#/components/schemas/TaskSendParams'
+            example:
+              arc: "1.0"
+              id: "req_002"
+              method: "task.send"
+              requestAgent: "user-interface-01"
+              targetAgent: "document-analyzer-01"
+              params:
+                taskId: "task-12345"
+                message:
+                  role: "user"
+                  parts:
+                    - type: "TextPart"
+                      content: "Please prioritize the financial analysis section"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SuccessResult'
+              example:
+                arc: "1.0"
+                id: "req_002"
+                responseAgent: "document-analyzer-01"
+                targetAgent: "user-interface-01"
+                result:
+                  success: true
+                  message: "Message sent to task successfully"
+                error: null
+
+  /arc/task.info:
+    post:
+      tags: ["Task Methods"]
+      summary: Retrieve task status and history
+      description: |
+        Retrieve current task status, conversation history, and any generated artifacts. 
+        Use to check progress or get comprehensive information when task is completed.
+      operationId: taskInfo
+      security:
+        - OAuth2: ["arc.task.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.info"]
+                    params:
+                      $ref: '#/components/schemas/TaskInfoParams'
+            example:
+              arc: "1.0"
+              id: "req_003"
+              method: "task.info"
+              requestAgent: "user-interface-01"
+              targetAgent: "document-analyzer-01"
+              params:
+                taskId: "task-12345"
+                includeMessages: true
+                includeArtifacts: true
+      responses:
+        '200':
+          description: Task data retrieved successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TaskResult'
+
+  /arc/task.cancel:
+    post:
+      tags: ["Task Methods"]
+      summary: Cancel an existing task
+      description: |
+        Cancel a running task before completion. Use when you no longer need the task results 
+        or want to stop processing.
+      operationId: taskCancel
+      security:
+        - OAuth2: ["arc.task.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.cancel"]
+                    params:
+                      $ref: '#/components/schemas/TaskCancelParams'
+            example:
+              arc: "1.0"
+              id: "req_004"
+              method: "task.cancel"
+              requestAgent: "user-interface-01"
+              targetAgent: "document-analyzer-01"
+              params:
+                taskId: "task-12345"
+                reason: "Priority changed"
+      responses:
+        '200':
+          description: Task canceled successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TaskResult'
+
+  /arc/task.subscribe:
+    post:
+      tags: ["Task Methods"]
+      summary: Subscribe to task notifications via webhook
+      description: |
+        Subscribe to receive webhook notifications about task status changes. Use when you want 
+        to be notified automatically instead of polling with `task.get`.
+      operationId: taskSubscribe
+      security:
+        - OAuth2: ["arc.task.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.subscribe"]
+                    params:
+                      $ref: '#/components/schemas/TaskSubscribeParams'
+            example:
+              arc: "1.0"
+              id: "req_005"
+              method: "task.subscribe"
+              requestAgent: "user-interface-01"
+              targetAgent: "document-analyzer-01"
+              params:
+                taskId: "task-12345"
+                callbackUrl: "https://myserver.com/webhooks/tasks"
+                events: ["TASK_COMPLETED", "TASK_FAILED"]
+      responses:
+        '200':
+          description: Subscription created successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SubscriptionResult'
+
+  # Chat Methods - Real-time agent communication
+  /arc/chat.start:
+    post:
+      tags: ["Chat Methods"]
+      summary: Start a real-time conversation chat
+      description: |
+        Begin a real-time conversation with an agent, including the first message. Use for interactive 
+        scenarios like customer support, collaborative editing, or live assistance.
+      operationId: chatStart
+      security:
+        - OAuth2: ["arc.chat.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["chat.start"]
+                    params:
+                      $ref: '#/components/schemas/ChatStartParams'
+            example:
+              arc: "1.0"
+              id: "req_006"
+              method: "chat.start"
+              requestAgent: "chat-interface-01"
+              targetAgent: "conversational-ai-01"
+              traceId: "conversation_session_123"
+              params:
+                initialMessage:
+                  role: "user"
+                  parts:
+                    - type: "TextPart"
+                      content: "Hello, I need help with my account"
+                metadata:
+                  sessionId: "customer-session-123"
+                  context: "technical-support"
+      responses:
+        '200':
+          description: Stream started successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChatResult'
+
+  /arc/chat.message:
+    post:
+      tags: ["Chat Methods"]
+      summary: Send follow-up message in active chat
+      description: |
+        Send follow-up messages in an active chat conversation. Used when chat history is preserved by the server.
+        Requires a valid chatId to maintain context between exchanges.
+      operationId: chatMessage
+      security:
+        - OAuth2: ["arc.chat.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["chat.message"]
+                    params:
+                      $ref: '#/components/schemas/ChatMessageParams'
+            example:
+              arc: "1.0"
+              id: "req_007"
+              method: "chat.message"
+              requestAgent: "chat-interface-01"
+              targetAgent: "conversational-ai-01"
+              params:
+                chatId: "chat-67890"
+                message:
+                  role: "user"
+                  parts:
+                    - type: "TextPart"
+                      content: "What's the weather like today?"
+      responses:
+        '200':
+          description: Message sent to stream successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SuccessResult'
+
+  /arc/chat.end:
+    post:
+      tags: ["Chat Methods"]
+      summary: Terminate an active chat
+      description: |
+        Terminate an active chat conversation. Used only for chats with preserved history.
+        Requires a valid chatId to identify which persistent chat to close.
+      operationId: chatEnd
+      security:
+        - OAuth2: ["arc.chat.controller", "arc.agent.caller"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["chat.end"]
+                    params:
+                      $ref: '#/components/schemas/ChatEndParams'
+            example:
+              arc: "1.0"
+              id: "req_008"
+              method: "chat.end"
+              requestAgent: "chat-interface-01"
+              targetAgent: "conversational-ai-01"
+              params:
+                chatId: "chat-67890"
+                reason: "Conversation completed"
+      responses:
+        '200':
+          description: Stream ended successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChatResult'
+
+  # Notification Methods - Server-initiated communications
+  /arc/task.notification:
+    post:
+      tags: ["Notification Methods"]
+      summary: Send task status notification (server-initiated)
+      description: |
+        Sent by the **processing agent** to notify about task progress, completion, or status changes. 
+        The target agent that received the task uses this to report back.
+      operationId: taskNotification
+      security:
+        - OAuth2: ["arc.task.notify", "arc.agent.receiver"]
+      requestBody:
+        required: true
+        content:
+          application/arc+json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ARCRequest'
+                - type: object
+                  properties:
+                    method:
+                      enum: ["task.notification"]
+                    params:
+                      $ref: '#/components/schemas/TaskNotificationParams'
+            example:
+              arc: "1.0"
+              id: "req_009"
+              method: "task.notification"
+              requestAgent: "document-analyzer-01"
+              targetAgent: "user-interface-01"
+              traceId: "workflow_doc_analysis_123"
+              params:
+                taskId: "task-12345"
+                event: "TASK_COMPLETED"
+                timestamp: "2024-01-15T10:35:00Z"
+                data:
+                  status: "COMPLETED"
+                  message: "Document analysis completed successfully"
+                  completedAt: "2024-01-15T10:35:00Z"
+                  duration: 300000
+                  artifactCount: 3
+      responses:
+        '200':
+          description: Notification received successfully
+          content:
+            application/arc+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ARCResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SuccessResult'
+
+
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: |
+        OAuth2 authentication with ARC-specific scopes for agent communication.
+        Different scopes control what operations agents can perform.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth2/token
+          scopes:
+            arc.agent.caller: Initiate requests to other agents
+            arc.agent.receiver: Receive and process requests, send notifications/chunks
+            arc.task.controller: Full control over task operations
+            arc.chat.controller: Full control over chat operations
+            arc.task.notify: Send task notifications
+
+  responses:
+    BadRequest:
+      description: Invalid request format
+      content:
+        application/arc+json:
+          schema:
+            $ref: '#/components/schemas/ARCResponse'
+          example:
+            arc: "1.0"
+            id: "req_001"
+            responseAgent: "arc-gateway"
+            targetAgent: "user-interface-01"
+            result: null
+            error:
+              code: -32600
+              message: "Invalid request"
+              details:
+                field: "method"
+                issue: "Method field is required"
+    
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/arc+json:
+          schema:
+            $ref: '#/components/schemas/ARCResponse'
+          example:
+            arc: "1.0"
+            id: "req_001"
+            responseAgent: "arc-gateway"
+            targetAgent: "user-interface-01"
+            result: null
+            error:
+              code: -44001
+              message: "Authentication failed"
+              details:
+                suggestion: "Provide valid OAuth2 Bearer token"
+    
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/arc+json:
+          schema:
+            $ref: '#/components/schemas/ARCResponse'
+          example:
+            arc: "1.0"
+            id: "req_001"
+            responseAgent: "arc-gateway"
+            targetAgent: "user-interface-01"
+            result: null
+            error:
+              code: -44003
+              message: "Insufficient OAuth2 scope"
+              details:
+                required: ["arc.task.controller", "arc.agent.caller"]
+                provided: ["arc.agent.caller"]
+
+  schemas:
+    # Base Request/Response Schemas
+    ARCRequest:
+      type: object
+      required:
+        - arc
+        - id
+        - method
+        - requestAgent
+        - targetAgent
+        - params
+      properties:
+        arc:
+          type: string
+          enum: ["1.0"]
+          description: Protocol version. Must be "1.0"
+          example: "1.0"
+        id:
+          oneOf:
+            - type: string
+            - type: number
+          description: Unique request identifier for correlation
+          example: "req_abc123"
+        method:
+          type: string
+          description: Method name to be invoked
+          enum:
+            - task.create
+            - task.send
+            - task.info
+            - task.cancel
+            - task.subscribe
+            - task.notification
+            - chat.start
+            - chat.message
+            - chat.end
+          example: "task.create"
+        requestAgent:
+          type: string
+          description: ID of the agent sending the request
+          example: "finance-analyzer-01"
+        targetAgent:
+          type: string
+          description: ID of the agent that should handle the request
+          example: "document-processor-03"
+        traceId:
+          type: string
+          description: Optional workflow tracking ID for multi-agent processes
+          example: "trace_report_20240115_abc123"
+        params:
+          type: object
+          description: Method-specific parameters
+
+    ARCResponse:
+      type: object
+      required:
+        - arc
+        - id
+        - responseAgent
+        - targetAgent
+      properties:
+        arc:
+          type: string
+          enum: ["1.0"]
+          description: Protocol version. Must be "1.0"
+          example: "1.0"
+        id:
+          oneOf:
+            - type: string
+            - type: number
+          description: Must match the request ID
+          example: "req_abc123"
+        responseAgent:
+          type: string
+          description: ID of the agent that processed the request
+          example: "document-processor-03"
+        targetAgent:
+          type: string
+          description: ID of the agent that should receive the response
+          example: "finance-analyzer-01"
+        traceId:
+          type: string
+          description: Same workflow tracking ID from request
+          example: "trace_report_20240115_abc123"
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/TaskResult'
+            - $ref: '#/components/schemas/ChatResult'
+            - $ref: '#/components/schemas/SuccessResult'
+            - $ref: '#/components/schemas/SubscriptionResult'
+          description: Method result data (null if error occurred)
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+          description: Error information (null if successful)
+
+    # Method Parameter Schemas
+    TaskCreateParams:
+      type: object
+      required:
+        - initialMessage
+      properties:
+        initialMessage:
+          $ref: '#/components/schemas/Message'
+          description: Initial message to start the task
+        priority:
+          type: string
+          enum: ["LOW", "NORMAL", "HIGH", "URGENT"]
+          default: "NORMAL"
+          description: Task priority level
+        metadata:
+          type: object
+          description: Custom task metadata
+          example:
+            deadline: "2024-01-15T17:00:00Z"
+            department: "finance"
+            userId: "user-123"
+
+    TaskSendParams:
+      type: object
+      required:
+        - taskId
+        - message
+      properties:
+        taskId:
+          type: string
+          description: Task identifier
+          example: "task-12345"
+        message:
+          $ref: '#/components/schemas/Message'
+          description: Message object to send
+
+    TaskInfoParams:
+      type: object
+      required:
+        - taskId
+      properties:
+        taskId:
+          type: string
+          description: Task identifier
+          example: "task-12345"
+        includeMessages:
+          type: boolean
+          default: true
+          description: Include full conversation history
+        includeArtifacts:
+          type: boolean
+          default: true
+          description: Include all generated artifacts
+
+    TaskCancelParams:
+      type: object
+      required:
+        - taskId
+      properties:
+        taskId:
+          type: string
+          description: Task identifier
+          example: "task-12345"
+        reason:
+          type: string
+          description: Reason for cancellation
+          example: "Priority changed"
+
+    TaskSubscribeParams:
+      type: object
+      required:
+        - taskId
+        - callbackUrl
+      properties:
+        taskId:
+          type: string
+          description: Task identifier
+          example: "task-12345"
+        callbackUrl:
+          type: string
+          format: uri
+          description: Webhook URL for notifications
+          example: "https://myserver.com/webhooks/tasks"
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - TASK_CREATED
+              - TASK_STARTED
+              - TASK_PAUSED
+              - TASK_RESUMED
+              - TASK_COMPLETED
+              - TASK_FAILED
+              - TASK_CANCELED
+              - NEW_MESSAGE
+              - NEW_ARTIFACT
+              - STATUS_CHANGE
+          default: ["TASK_COMPLETED", "TASK_FAILED"]
+          description: Events to subscribe to
+
+    ChatStartParams:
+      type: object
+      required:
+        - initialMessage
+      properties:
+        initialMessage:
+          $ref: '#/components/schemas/Message'
+          description: Initial message to start the conversation
+        chatId:
+          type: string
+          description: Client-specified chat identifier. If not provided, server generates one
+          example: "chat-67890"
+        stream:
+          type: boolean
+          default: false
+          description: When true, response will use Server-Sent Events (SSE)
+          example: true
+        metadata:
+          type: object
+          description: Custom chat metadata
+          example:
+            sessionId: "customer-session-123"
+            context: "technical-support"
+
+    ChatMessageParams:
+      type: object
+      required:
+        - chatId
+        - message
+      properties:
+        chatId:
+          type: string
+          description: Chat identifier
+          example: "chat-67890"
+        message:
+          $ref: '#/components/schemas/Message'
+          description: Message to send to chat
+        stream:
+          type: boolean
+          default: false
+          description: When true, response will use Server-Sent Events (SSE)
+          example: true
+
+    ChatEndParams:
+      type: object
+      required:
+        - chatId
+      properties:
+        chatId:
+          type: string
+          description: Chat identifier
+          example: "chat-67890"
+        reason:
+          type: string
+          description: Reason for ending chat
+          example: "Conversation completed"
+
+    TaskNotificationParams:
+      type: object
+      required:
+        - taskId
+        - event
+        - timestamp
+        - data
+      properties:
+        taskId:
+          type: string
+          description: Task identifier
+          example: "task-12345"
+        event:
+          type: string
+          enum:
+            - TASK_CREATED
+            - TASK_STARTED
+            - TASK_PAUSED
+            - TASK_RESUMED
+            - TASK_COMPLETED
+            - TASK_FAILED
+            - TASK_CANCELED
+            - NEW_MESSAGE
+            - NEW_ARTIFACT
+            - STATUS_CHANGE
+          description: Event type
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+          example: "2024-01-15T10:35:00Z"
+        data:
+          $ref: '#/components/schemas/TaskNotificationData'
+          description: Event-specific notification data
+
+
+
+    # Result Schemas
+    TaskResult:
+      type: object
+      required:
+        - type
+        - task
+      properties:
+        type:
+          type: string
+          enum: ["task"]
+          example: "task"
+        task:
+          $ref: '#/components/schemas/Task'
+
+    ChatResult:
+      type: object
+      required:
+        - type
+        - chat
+      properties:
+        type:
+          type: string
+          enum: ["chat"]
+          example: "chat"
+        chat:
+          $ref: '#/components/schemas/Chat'
+
+    SubscriptionResult:
+      type: object
+      required:
+        - type
+        - subscription
+      properties:
+        type:
+          type: string
+          enum: ["task"]
+          example: "task"
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+
+    SuccessResult:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+          example: true
+        message:
+          type: string
+          description: Optional human-readable confirmation
+          example: "Message sent successfully"
+
+    # Core Data Objects
+    Task:
+      type: object
+      required:
+        - taskId
+        - status
+        - createdAt
+      properties:
+        taskId:
+          type: string
+          description: Server-generated unique task identifier
+          example: "task-12345"
+        status:
+          type: string
+          enum: ["SUBMITTED", "WORKING", "INPUT_REQUIRED", "COMPLETED", "FAILED", "CANCELED"]
+          description: Current task status
+          example: "SUBMITTED"
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO timestamp when task was created
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:35:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: Completion timestamp
+          example: "2024-01-15T10:45:00Z"
+        canceledAt:
+          type: string
+          format: date-time
+          description: Cancellation timestamp
+          example: "2024-01-15T10:40:00Z"
+        reason:
+          type: string
+          description: Reason for cancellation or failure
+          example: "Priority changed"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Task conversation history
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+          description: Generated files and outputs
+
+    Chat:
+      type: object
+      required:
+        - chatId
+        - status
+      properties:
+        chatId:
+          type: string
+          description: Unique chat identifier
+          example: "chat-67890"
+        status:
+          type: string
+          enum: ["ACTIVE", "PAUSED", "CLOSED"]
+          description: Current chat status
+          example: "ACTIVE"
+        message:
+          $ref: '#/components/schemas/Message'
+          description: Latest message in the chat
+        participants:
+          type: array
+          items:
+            type: string
+          description: Agent IDs participating in the chat
+          example: ["chat-agent-01"]
+        createdAt:
+          type: string
+          format: date-time
+          description: Chat creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Chat last update timestamp
+          example: "2024-01-15T10:40:00Z"
+        closedAt:
+          type: string
+          format: date-time
+          description: Chat closure timestamp
+          example: "2024-01-15T10:45:00Z"
+        reason:
+          type: string
+          description: Reason for closure
+          example: "Conversation completed"
+
+    Subscription:
+      type: object
+      required:
+        - subscriptionId
+        - taskId
+        - callbackUrl
+        - events
+        - createdAt
+        - active
+      properties:
+        subscriptionId:
+          type: string
+          description: Server-generated subscription ID
+          example: "sub-67890"
+        taskId:
+          type: string
+          description: Task being monitored
+          example: "task-12345"
+        callbackUrl:
+          type: string
+          format: uri
+          description: Webhook URL
+          example: "https://myserver.com/webhooks/tasks"
+        events:
+          type: array
+          items:
+            type: string
+          description: Subscribed events
+          example: ["TASK_COMPLETED", "TASK_FAILED"]
+        createdAt:
+          type: string
+          format: date-time
+          description: Subscription timestamp
+          example: "2024-01-15T10:30:00Z"
+        active:
+          type: boolean
+          description: Subscription status
+          example: true
+
+    Message:
+      type: object
+      required:
+        - role
+        - parts
+      properties:
+        role:
+          type: string
+          enum: ["user", "agent", "system"]
+          description: Message sender role
+          example: "user"
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessagePart'
+          description: Array of message parts
+        timestamp:
+          type: string
+          format: date-time
+          description: Message timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    MessagePart:
+      type: object
+      required:
+        - type
+      discriminator:
+        propertyName: type
+        mapping:
+          TextPart: '#/components/schemas/TextPart'
+          DataPart: '#/components/schemas/DataPart'
+          FilePart: '#/components/schemas/FilePart'
+          ImagePart: '#/components/schemas/ImagePart'
+          AudioPart: '#/components/schemas/AudioPart'
+      oneOf:
+        - $ref: '#/components/schemas/TextPart'
+        - $ref: '#/components/schemas/DataPart'
+        - $ref: '#/components/schemas/FilePart'
+        - $ref: '#/components/schemas/ImagePart'
+        - $ref: '#/components/schemas/AudioPart'
+
+    TextPart:
+      type: object
+      required:
+        - type
+        - content
+      properties:
+        type:
+          type: string
+          enum: ["TextPart"]
+          example: "TextPart"
+        content:
+          type: string
+          description: Plain text content
+          example: "Hello world"
+
+    DataPart:
+      type: object
+      required:
+        - type
+        - content
+        - mimeType
+      properties:
+        type:
+          type: string
+          enum: ["DataPart"]
+          example: "DataPart"
+        content:
+          type: string
+          description: Structured data content
+          example: '{"revenue": 1000000}'
+        mimeType:
+          type: string
+          description: MIME type of the data
+          example: "application/json"
+
+    FilePart:
+      type: object
+      required:
+        - type
+        - content
+        - mimeType
+      properties:
+        type:
+          type: string
+          enum: ["FilePart"]
+          example: "FilePart"
+        content:
+          type: string
+          description: Base64 encoded file content
+          example: "base64encodedpdf..."
+        mimeType:
+          type: string
+          description: File MIME type
+          example: "application/pdf"
+        filename:
+          type: string
+          description: Original filename
+          example: "Q4-2024-Report.pdf"
+
+    ImagePart:
+      type: object
+      required:
+        - type
+        - content
+        - mimeType
+      properties:
+        type:
+          type: string
+          enum: ["ImagePart"]
+          example: "ImagePart"
+        content:
+          type: string
+          description: Base64 encoded image content
+          example: "base64encodedimage..."
+        mimeType:
+          type: string
+          description: Image MIME type
+          example: "image/jpeg"
+        width:
+          type: integer
+          description: Image width in pixels
+          example: 1920
+        height:
+          type: integer
+          description: Image height in pixels
+          example: 1080
+
+    AudioPart:
+      type: object
+      required:
+        - type
+        - content
+        - mimeType
+      properties:
+        type:
+          type: string
+          enum: ["AudioPart"]
+          example: "AudioPart"
+        content:
+          type: string
+          description: Base64 encoded audio content
+          example: "base64encodedaudio..."
+        mimeType:
+          type: string
+          description: Audio MIME type
+          example: "audio/mpeg"
+        duration:
+          type: number
+          description: Audio duration in seconds
+          example: 30.5
+
+    Artifact:
+      type: object
+      required:
+        - artifactId
+        - name
+        - parts
+        - createdAt
+      properties:
+        artifactId:
+          type: string
+          description: Unique artifact identifier
+          example: "artifact-123"
+        name:
+          type: string
+          description: Human-readable artifact name
+          example: "Quarterly Report"
+        description:
+          type: string
+          description: Artifact description
+          example: "Q4 2024 financial analysis"
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessagePart'
+          description: Artifact content parts
+        createdAt:
+          type: string
+          format: date-time
+          description: Artifact creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        version:
+          type: string
+          description: Artifact version
+          example: "1.0"
+
+    TaskNotificationData:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          description: Current task status
+          example: "COMPLETED"
+        message:
+          type: string
+          description: Human-readable description
+          example: "Task finished successfully"
+        # Optional event-specific fields
+        priority:
+          type: string
+          description: Task priority (used by TASK_CREATED)
+          example: "HIGH"
+        assignedAgent:
+          type: string
+          description: Agent ID handling the task
+          example: "document-analyzer-01"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when task was created
+        startedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task started
+        pausedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task was paused
+        resumedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task resumed
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task completed
+        failedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task failed
+        canceledAt:
+          type: string
+          format: date-time
+          description: Timestamp when task was canceled
+        changedAt:
+          type: string
+          format: date-time
+          description: Timestamp when status changed
+        duration:
+          type: number
+          description: Total task duration in milliseconds
+          example: 300000
+        pauseDuration:
+          type: number
+          description: Time paused in milliseconds
+        estimatedDuration:
+          type: number
+          description: Estimated duration in milliseconds
+        artifactCount:
+          type: number
+          description: Number of artifacts generated
+          example: 3
+        messageCount:
+          type: number
+          description: Number of messages in conversation
+        canceledBy:
+          type: string
+          description: Agent or user ID who canceled task
+        reason:
+          type: string
+          description: Human-readable reason for action
+        requiredInput:
+          type: string
+          description: Type of input needed when paused
+        previousStatus:
+          type: string
+          description: Previous task status
+        error:
+          type: object
+          description: Structured error information
+        messageContent:
+          $ref: '#/components/schemas/Message'
+          description: Complete Message object (for NEW_MESSAGE)
+        artifact:
+          $ref: '#/components/schemas/Artifact'
+          description: Complete Artifact object (for NEW_ARTIFACT)
+
+    ErrorObject:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: Numeric error code
+          example: -41002
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Agent not available"
+        details:
+          type: object
+          description: Optional additional error information
+          example:
+            agentId: "missing-agent"
+            suggestion: "Check agent registry"
+
+tags:
+  - name: Task Methods
+    description: |
+      Asynchronous agent operations for long-running tasks. Use these methods when you want to 
+      delegate work that may take time to complete, such as document analysis or report generation.
+      Tasks have persistent state and can be queried for progress.
+      
+  - name: Chat Methods  
+    description: |
+      Real-time interactive agent communication for immediate back-and-forth conversation. 
+      Use these methods for interactive scenarios like customer support, collaborative editing, 
+      or live assistance where you need immediate responses.
+      
+  - name: Notification Methods
+    description: |
+      Server-initiated notifications and updates sent by processing agents back to requesting agents.
+      These methods are used by agents to push status updates, progress notifications, or streaming 
+      data chunks back to the original requesters.

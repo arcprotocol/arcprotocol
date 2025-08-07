@@ -1,0 +1,991 @@
+{
+  "openrpc": "1.2.6",
+  "info": {
+    "version": "1.0.0",
+    "title": "ARC Protocol",
+    "description": "Agent Remote Communication (ARC) Protocol - A multi-agent RPC protocol for AI agent communication",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "name": "Default ARC Endpoint",
+      "url": "https://api.company.com/arc"
+    }
+  ],
+  "methods": [
+    {
+      "name": "task.create",
+      "summary": "Create a new asynchronous task",
+      "description": "Create a new asynchronous task with an agent. Use when you want to delegate work that may take time to complete (e.g., document analysis, report generation).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "initialMessage",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "description": "Initial message to start the task"
+        },
+        {
+          "name": "priority",
+          "required": false,
+          "schema": {
+            "enum": ["LOW", "NORMAL", "HIGH", "URGENT"],
+            "type": "string",
+            "default": "NORMAL"
+          },
+          "description": "Task priority level"
+        },
+        {
+          "name": "metadata",
+          "required": false,
+          "schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "description": "Custom task metadata"
+        }
+      ],
+      "result": {
+        "name": "taskResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["task"]
+            },
+            "task": {
+              "$ref": "#/components/schemas/TaskObject"
+            }
+          },
+          "required": ["type", "task"]
+        },
+        "description": "Task creation result"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid parameters"
+        },
+        {
+          "code": -41002,
+          "message": "Agent not available"
+        },
+        {
+          "code": -44003,
+          "message": "Insufficient OAuth2 scope"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Task Methods"
+        }
+      ]
+    },
+    {
+      "name": "task.send",
+      "summary": "Send a message to an existing task",
+      "description": "Send additional data to a task. Only used when the task status is INPUT_REQUIRED - meaning the agent needs more information from you to continue processing the task.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "taskId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Task identifier"
+        },
+        {
+          "name": "message",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "description": "Message to send"
+        }
+      ],
+      "result": {
+        "name": "successResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": ["success"]
+        },
+        "description": "Operation success result"
+      },
+      "errors": [
+        {
+          "code": -42001,
+          "message": "Task not found"
+        },
+        {
+          "code": -42002,
+          "message": "Task already completed"
+        },
+        {
+          "code": -42003,
+          "message": "Task already canceled"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Task Methods"
+        }
+      ]
+    },
+    {
+      "name": "task.info",
+      "summary": "Retrieve task status and history",
+      "description": "Get comprehensive information about a task, including its status, conversation history, and any generated artifacts.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "taskId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Task identifier"
+        },
+        {
+          "name": "includeMessages",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "default": true
+          },
+          "description": "Include full conversation history"
+        },
+        {
+          "name": "includeArtifacts",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "default": true
+          },
+          "description": "Include all artifacts"
+        }
+      ],
+      "result": {
+        "name": "taskResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["task"]
+            },
+            "task": {
+              "$ref": "#/components/schemas/TaskObject"
+            }
+          },
+          "required": ["type", "task"]
+        },
+        "description": "Task information result"
+      },
+      "errors": [
+        {
+          "code": -42001,
+          "message": "Task not found"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Task Methods"
+        }
+      ]
+    },
+    {
+      "name": "task.cancel",
+      "summary": "Cancel an existing task",
+      "description": "Cancel a running task before completion. Use when you no longer need the task results or want to stop processing.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "taskId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Task identifier"
+        },
+        {
+          "name": "reason",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Reason for cancellation"
+        }
+      ],
+      "result": {
+        "name": "taskResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["task"]
+            },
+            "task": {
+              "$ref": "#/components/schemas/TaskObject"
+            }
+          },
+          "required": ["type", "task"]
+        },
+        "description": "Task cancellation result"
+      },
+      "errors": [
+        {
+          "code": -42001,
+          "message": "Task not found"
+        },
+        {
+          "code": -42002,
+          "message": "Task already completed"
+        },
+        {
+          "code": -42003,
+          "message": "Task already canceled"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Task Methods"
+        }
+      ]
+    },
+    {
+      "name": "task.subscribe",
+      "summary": "Subscribe to task notifications via webhook",
+      "description": "Subscribe to receive webhook notifications about task status changes. Use when you want to be notified automatically instead of polling with task.info.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "taskId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Task identifier"
+        },
+        {
+          "name": "callbackUrl",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Webhook URL for notifications"
+        },
+        {
+          "name": "events",
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TASK_CREATED",
+                "TASK_STARTED",
+                "TASK_PAUSED",
+                "TASK_RESUMED",
+                "TASK_COMPLETED",
+                "TASK_FAILED",
+                "TASK_CANCELED",
+                "NEW_MESSAGE",
+                "NEW_ARTIFACT",
+                "STATUS_CHANGE"
+              ]
+            },
+            "default": ["TASK_COMPLETED", "TASK_FAILED"]
+          },
+          "description": "Events to subscribe to"
+        }
+      ],
+      "result": {
+        "name": "subscriptionResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["subscription"]
+            },
+            "subscription": {
+              "$ref": "#/components/schemas/SubscriptionObject"
+            }
+          },
+          "required": ["type", "subscription"]
+        },
+        "description": "Subscription result"
+      },
+      "errors": [
+        {
+          "code": -42001,
+          "message": "Task not found"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Task Methods"
+        }
+      ]
+    },
+    {
+      "name": "chat.start",
+      "summary": "Start a real-time conversation",
+      "description": "Begin a real-time conversation with an agent, including the first message. Use for interactive scenarios like customer support, collaborative editing, or live assistance.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "initialMessage",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "description": "Initial message to start the conversation"
+        },
+        {
+          "name": "chatId",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Client-specified chat identifier"
+        },
+        {
+          "name": "stream",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "default": false
+          },
+          "description": "Enable streaming response via Server-Sent Events"
+        },
+        {
+          "name": "metadata",
+          "required": false,
+          "schema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "description": "Custom chat metadata"
+        }
+      ],
+      "result": {
+        "name": "chatResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["chat"]
+            },
+            "chat": {
+              "$ref": "#/components/schemas/ChatObject"
+            }
+          },
+          "required": ["type", "chat"]
+        },
+        "description": "Chat start result"
+      },
+      "errors": [
+        {
+          "code": -43006,
+          "message": "Chat buffer overflow"
+        },
+        {
+          "code": -43004,
+          "message": "Chat participant limit exceeded"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Chat Methods"
+        }
+      ]
+    },
+    {
+      "name": "chat.message",
+      "summary": "Send a message in an active chat",
+      "description": "Send follow-up messages in an active chat conversation. Used when chat history is preserved by the server. Requires a valid chatId to maintain context between exchanges.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "chatId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Chat identifier"
+        },
+        {
+          "name": "message",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "description": "Message to send"
+        },
+        {
+          "name": "stream",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "default": false
+          },
+          "description": "Enable streaming response via Server-Sent Events"
+        }
+      ],
+      "result": {
+        "name": "chatResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["chat"]
+            },
+            "chat": {
+              "$ref": "#/components/schemas/ChatObject"
+            }
+          },
+          "required": ["type", "chat"]
+        },
+        "description": "Chat message result"
+      },
+      "errors": [
+        {
+          "code": -43001,
+          "message": "Chat not found"
+        },
+        {
+          "code": -43002,
+          "message": "Chat already closed"
+        },
+        {
+          "code": -43005,
+          "message": "Invalid chat message"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Chat Methods"
+        }
+      ]
+    },
+    {
+      "name": "chat.end",
+      "summary": "End an active chat",
+      "description": "Terminate an active chat conversation. Used only for chats with preserved history. Requires a valid chatId to identify which persistent chat to close.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "chatId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Chat identifier"
+        },
+        {
+          "name": "reason",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Reason for ending the chat"
+        }
+      ],
+      "result": {
+        "name": "chatResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["chat"]
+            },
+            "chat": {
+              "$ref": "#/components/schemas/ChatObject"
+            }
+          },
+          "required": ["type", "chat"]
+        },
+        "description": "Chat end result"
+      },
+      "errors": [
+        {
+          "code": -43001,
+          "message": "Chat not found"
+        },
+        {
+          "code": -43002,
+          "message": "Chat already closed"
+        }
+      ],
+      "tags": [
+        {
+          "name": "Chat Methods"
+        }
+      ]
+    },
+    {
+      "name": "task.notification",
+      "summary": "Send task status notification",
+      "description": "Sent by the processing agent to notify about task progress, completion, or status changes. This is a fire-and-forget method where the sender doesn't expect or process the response beyond basic HTTP acknowledgment.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "taskId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Task identifier"
+        },
+        {
+          "name": "event",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "TASK_CREATED",
+              "TASK_STARTED",
+              "TASK_PAUSED",
+              "TASK_RESUMED",
+              "TASK_COMPLETED",
+              "TASK_FAILED",
+              "TASK_CANCELED",
+              "NEW_MESSAGE",
+              "NEW_ARTIFACT",
+              "STATUS_CHANGE"
+            ]
+          },
+          "description": "Event type"
+        },
+        {
+          "name": "timestamp",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": "Event timestamp"
+        },
+        {
+          "name": "data",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "Current task status"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable description"
+              }
+            },
+            "additionalProperties": true,
+            "required": ["status", "message"]
+          },
+          "description": "Event data"
+        }
+      ],
+      "result": {
+        "name": "successResult",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          },
+          "required": ["success"]
+        },
+        "description": "Simple acknowledgment (not processed by sender)"
+      },
+      "errors": [],
+      "tags": [
+        {
+          "name": "Notification Methods"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Role": {
+        "type": "string",
+        "enum": ["user", "agent", "system"]
+      },
+      "PartType": {
+        "type": "string",
+        "enum": ["TextPart", "DataPart", "FilePart", "ImagePart", "AudioPart"]
+      },
+      "Encoding": {
+        "type": "string",
+        "enum": ["base64", "utf8", "binary"]
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": ["SUBMITTED", "WORKING", "INPUT_REQUIRED", "COMPLETED", "FAILED", "CANCELED"]
+      },
+      "ChatStatus": {
+        "type": "string",
+        "enum": ["ACTIVE", "PAUSED", "CLOSED"]
+      },
+      "Priority": {
+        "type": "string",
+        "enum": ["LOW", "NORMAL", "HIGH", "URGENT"]
+      },
+      "EventType": {
+        "type": "string",
+        "enum": [
+          "TASK_CREATED",
+          "TASK_STARTED",
+          "TASK_PAUSED",
+          "TASK_RESUMED",
+          "TASK_COMPLETED",
+          "TASK_FAILED",
+          "TASK_CANCELED",
+          "NEW_MESSAGE",
+          "NEW_ARTIFACT",
+          "STATUS_CHANGE"
+        ]
+      },
+      "ResultType": {
+        "type": "string",
+        "enum": ["task", "chat", "subscription", "success"]
+      },
+      "Part": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/PartType"
+          },
+          "content": {
+            "type": ["string", "object", "array", "null"]
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "encoding": {
+            "$ref": "#/components/schemas/Encoding"
+          }
+        },
+        "required": ["type"]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Part"
+            },
+            "minItems": 1
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "agentId": {
+            "type": "string"
+          }
+        },
+        "required": ["role", "parts"]
+      },
+      "Artifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Part"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["artifactId", "name", "parts"]
+      },
+      "TaskObject": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignedAgent": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["taskId", "status", "createdAt"]
+      },
+      "ChatObject": {
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChatStatus"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["chatId", "status", "createdAt"]
+      },
+      "SubscriptionObject": {
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "callbackUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventType"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": ["subscriptionId", "taskId", "callbackUrl", "events"]
+      },
+      "ErrorObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": ["object", "array", "string", "number", "boolean", "null"]
+          }
+        },
+        "required": ["code", "message"]
+      }
+    },
+    "contentDescriptors": {
+      "arcRequest": {
+        "name": "arcRequest",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "arc": {
+              "type": "string",
+              "enum": ["1.0"]
+            },
+            "id": {
+              "type": ["string", "integer"]
+            },
+            "method": {
+              "type": "string"
+            },
+            "requestAgent": {
+              "type": "string"
+            },
+            "targetAgent": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object"
+            },
+            "traceId": {
+              "type": "string"
+            }
+          },
+          "required": ["arc", "id", "method", "requestAgent", "targetAgent", "params"]
+        },
+        "description": "Standard ARC protocol request format"
+      },
+      "arcResponse": {
+        "name": "arcResponse",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "arc": {
+              "type": "string",
+              "enum": ["1.0"]
+            },
+            "id": {
+              "type": ["string", "integer"]
+            },
+            "responseAgent": {
+              "type": "string"
+            },
+            "targetAgent": {
+              "type": "string"
+            },
+            "result": {
+              "type": ["object", "null"]
+            },
+            "error": {
+              "type": ["object", "null"],
+              "properties": {
+                "code": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": ["object", "array", "string", "number", "boolean", "null"]
+                }
+              },
+              "required": ["code", "message"]
+            },
+            "traceId": {
+              "type": "string"
+            }
+          },
+          "required": ["arc", "id", "responseAgent", "targetAgent"]
+        },
+        "description": "Standard ARC protocol response format"
+      }
+    },
+    "examples": {
+      "taskCreateExample": {
+        "name": "Create a document analysis task",
+        "summary": "Create a new task to analyze a document",
+        "value": {
+          "initialMessage": {
+            "role": "user",
+            "parts": [
+              {
+                "type": "TextPart",
+                "content": "Analyze the uploaded financial report for key insights"
+              },
+              {
+                "type": "FilePart",
+                "content": "base64encodedpdf...",
+                "mimeType": "application/pdf",
+                "filename": "Q4-2024-Report.pdf"
+              }
+            ]
+          },
+          "priority": "HIGH",
+          "metadata": {
+            "deadline": "2024-01-15T17:00:00Z",
+            "userId": "user-123"
+          }
+        }
+      }
+    }
+  }
+}
