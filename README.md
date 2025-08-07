@@ -1,9 +1,5 @@
 # ARC Protocol - Agent Remote Communication
 
-<div align="center">
-  <img src="./docs/assets/arc-banner.png" alt="ARC Protocol Banner" width="800px" />
-</div>
-
 [![GitHub license](https://img.shields.io/github/license/arcprotocol/arcprotocol)](https://github.com/arcprotocol/arcprotocol/blob/main/LICENSE)
 [![npm version](https://img.shields.io/npm/v/arc-protocol.svg)](https://www.npmjs.com/package/arc-protocol)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/arcprotocol/arcprotocol/blob/main/CONTRIBUTING.md)
