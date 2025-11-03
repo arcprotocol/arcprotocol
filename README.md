@@ -17,6 +17,8 @@
 - **Method-Based**: Clean RPC-style method invocation
 - **HTTPS Transport**: Works over HTTPS with POST requests
 - **Server-Sent Events**: Support for streaming responses via SSE
+- **Python SDK**: Python implementation of the ARC Protocol [Python SDK](https://github.com/arcprotocol/python-sdk)
+
 
 ## Documentation
 
@@ -32,13 +34,10 @@
 While ARC Protocol can be used as a standalone communication protocol between agents, it works best as part of the ARC ecosystem:
 
 - **[ARC Protocol](https://github.com/arcprotocol/arcprotocol)**: This repository - the communication standard between agents
-- **[Python SDK](https://github.com/arcprotocol/python-sdk)**: Python implementation of the ARC Protocol
 - **[ARC Compass](https://github.com/arcprotocol/arccompass)**: Agent search engine that finds appropriate agents without ranking algorithms
 - **[ARC Ledger](https://github.com/arcprotocol/arcledger)**: Centralized agent discovery registry
 
 ARC Protocol works effectively with other components in the ARC ecosystem. The protocol's workflow tracing capabilities integrate with external monitoring and observability platforms, enabling tracking of multi-agent workflows. This design works with existing monitoring solutions while maintaining protocol simplicity.
-
-For more information about how the ARC ecosystem components work together, visit our [main GitHub organization page](https://github.com/arcprotocol).
 
 ## Maintainers
 
