@@ -2,132 +2,97 @@
 
 Thank you for your interest in contributing to the ARC Protocol! This document provides guidelines and instructions for contributing to the project.
 
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Contributing Process](#contributing-process)
-- [Pull Request Guidelines](#pull-request-guidelines)
-- [Development Guidelines](#development-guidelines)
-- [Release Process](#release-process)
-
 ## Code of Conduct
 
 This project adheres to the [ARC Protocol Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (LTS version)
-- npm or yarn
-- Git
-
-### Fork and Clone
-
-1. Fork the repository on GitHub
-2. Clone your fork locally:
-   ```bash
-   git clone https://github.com/your-username/arcprotocol.git
-   cd arcprotocol
-   ```
-3. Add the original repository as an upstream remote:
-   ```bash
-   git remote add upstream https://github.com/arcprotocol/arcprotocol.git
-   ```
-
 ## Development Setup
 
-1. Install dependencies:
+1. **Prerequisites**:
+   - Node.js (LTS version)
+   - npm or yarn
+   - Git
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. Run tests to verify your setup:
+3. **Build the project**:
    ```bash
-   npm test
+   npm run build
    ```
+
+4. **Format code**:
+   ```bash
+   npm run format
+   ```
+
+5. **Lint code**:
+   ```bash
+   npm run lint
+   ```
+
+## Schema Management
+
+The ARC Protocol is defined by its OpenAPI schema located at `spec/arc/v1/schema/arc-schema.yaml`. When making changes to the protocol, you'll need to update this schema and regenerate the derived files:
+
+```bash
+# Generate TypeScript types from the OpenAPI schema
+npm run generate:types
+
+# Generate OpenRPC schema from the OpenAPI schema
+npm run generate:openrpc
+
+# Generate both types and OpenRPC schema
+npm run generate:all
+```
+
 
 ## Contributing Process
 
-1. **Find an Issue**: Look for open issues or create a new one to discuss your proposed change.
+We follow the [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow) for contributions.
 
-2. **Create a Branch**: Create a feature branch for your changes:
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/your-username/arcprotocol.git
+   cd arcprotocol
+   ```
+3. **Add the upstream remote**:
+   ```bash
+   git remote add upstream https://github.com/arcprotocol/arcprotocol.git
+   ```
+4. **Create a branch** for your changes:
    ```bash
    git checkout -b feature/your-feature-name
    ```
+5. **Make your changes** and commit them following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
 
-3. **Make Changes**: Implement your changes, following our [Development Guidelines](#development-guidelines).
-
-4. **Write Tests**: Add tests for your changes to ensure they work as expected.
-
-5. **Update Documentation**: Update relevant documentation to reflect your changes.
-
-6. **Commit Changes**: Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+   > [!TIP]
+   > Use prefixes like `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, or `chore:` in your commit messages.
+   
    ```bash
-   git commit -m "feat: add new feature" # for features
-   git commit -m "fix: resolve issue with X" # for bug fixes
-   git commit -m "docs: update API documentation" # for documentation
+   git commit -m "feat: add new feature"
+   git commit -m "fix: resolve issue with X"
+   git commit -m "docs: update API documentation"
    ```
 
-7. **Pull Request**: Submit a pull request from your feature branch to our `main` branch.
+6. **Push your changes** to your fork:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+7. **Create a Pull Request** from your branch to the main repository
 
 ## Pull Request Guidelines
 
-- **Title**: Use a clear and descriptive title that summarizes your changes.
-- **Description**: Include a detailed description explaining what changes you made and why.
-- **Link to Issue**: Reference any related issues (e.g., "Fixes #123").
-- **Tests**: Ensure all tests pass and add new tests for your changes.
-- **Documentation**: Update any relevant documentation.
-- **Changelog**: Add an entry to the CHANGELOG.md file if applicable.
-- **Squash Commits**: Squash related commits before submitting your PR.
+> [!IMPORTANT]
+> Before submitting your PR, make sure your changes are properly formatted and documented.
 
-## Development Guidelines
-
-### Coding Standards
-
-- Follow TypeScript best practices
-- Use ESLint and Prettier for code formatting
-- Write self-documenting code with meaningful variable names
-- Add comments for complex logic
-
-### API Design Principles
-
-1. **Simplicity**: Keep APIs simple and intuitive
-2. **Consistency**: Maintain consistent patterns throughout the codebase
-3. **Documentation**: Document all public APIs thoroughly
-4. **Backwards Compatibility**: Avoid breaking changes when possible
-
-### Testing Guidelines
-
-- Write unit tests for all new code
-- Maintain high test coverage
-- Include integration tests for complex features
-- Test edge cases and error scenarios
-
-## Protocol Compliance
-
-The ARC Protocol is a specification-driven project. When contributing, ensure that your changes:
-
-1. Adhere to the [ARC Protocol Specification](./specification/README.md)
-2. Maintain compatibility with existing implementations
-3. Follow the protocol's design principles
-4. Include appropriate type definitions
-5. Document any extensions or customizations
-
-## Release Process
-
-1. **Versioning**: We follow [Semantic Versioning](https://semver.org/)
-2. **Release Candidates**: Major releases have RC versions for testing
-3. **Changelog**: Update CHANGELOG.md with all notable changes
-4. **NPM Publishing**: Releases are published to npm automatically via GitHub Actions
-
-## Questions?
-
-If you have any questions or need help, please:
-- Open an issue with your question
-- Join our Discord community (link in README)
-- Contact us via email at info@arcprotocol.org
+- **Title**: Use a clear and descriptive title that follows the Conventional Commits format
+- **Description**: Include a detailed description explaining what changes you made and why
+- **Link to Issue**: Reference any related issues (e.g., "Fixes #123")
+- **Documentation**: Update any relevant documentation
+- **Changelog**: Add an entry to the CHANGELOG.md file if applicable
 
 Thank you for contributing to ARC Protocol!

@@ -10,7 +10,7 @@ import * as yaml from 'js-yaml';
 import { OpenAPIV3 } from 'openapi-types';
 
 // Paths
-const SCHEMA_PATH = path.join(__dirname, '../../specification/schema/arc-schema.yaml');
+const SCHEMA_PATH = path.join(__dirname, '../../spec/arc/v1/schema/arc-schema.yaml');
 const OUTPUT_PATH = path.join(__dirname, '../types/generated.ts');
 
 // Type mapping
@@ -74,6 +74,17 @@ function capitalizeFirst(str: string): string {
  */
 async function generateTypes(): Promise<void> {
   try {
+    console.log(`Reading OpenAPI schema from ${SCHEMA_PATH}`);
+    
+    // Check if file exists
+    try {
+      await fs.access(SCHEMA_PATH);
+    } catch (error) {
+      console.error(`Error: OpenAPI schema file not found at ${SCHEMA_PATH}`);
+      console.error('Please make sure the file exists at the correct location.');
+      process.exit(1);
+    }
+    
     // Read schema
     const schemaContent = await fs.readFile(SCHEMA_PATH, 'utf-8');
     const schema = yaml.load(schemaContent) as OpenAPIV3.Document;
@@ -101,15 +112,17 @@ async function generateTypes(): Promise<void> {
     // Generate interfaces
     for (const [name, schemaObj] of Object.entries(schemas)) {
       if (!('enum' in schemaObj)) {
-        const description = schemaObj.description ? 
+        const description = 'description' in schemaObj && schemaObj.description ? 
           `/**\n * ${schemaObj.description}\n */\n` : '';
         
         output += `${description}export interface ${name} ${schemaToType(schemaObj, name, schema.components!)}\n\n`;
       }
     }
     
-    // Write output
+    // Ensure output directory exists
     await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
+    
+    // Write output
     await fs.writeFile(OUTPUT_PATH, output);
     
     console.log(`Generated TypeScript types at ${OUTPUT_PATH}`);

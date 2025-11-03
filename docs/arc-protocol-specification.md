@@ -1,7 +1,7 @@
 # ARC Protocol Specification
 **Agent Remote Communication Protocol**  
 **Version 1.0**  
-**Date: January 2025**
+**Date: November 3, 2025**
 
 ---
 
@@ -22,35 +22,27 @@
 
 ## Overview
 
-**ARC (Agent Remote Communication)** is the first RPC protocol that solves multi-agent deployment complexity with built-in agent routing, load balancing, and workflow tracing. Deploy hundreds of different agent types on a single endpoint with zero infrastructure overhead - no service discovery, no API gateways, no orchestration engines required.
+**ARC (Agent Remote Communication)** is a communication standard between agents for multi-agent systems. The protocol enables hosting multiple agent types on a single endpoint with agent-level routing via `requestAgent` and `targetAgent` fields, and provides workflow tracing capabilities designed for integration with monitoring platforms.
 
 ### Key Features
-- **Multi-Agent Architecture**: Single endpoint supports multiple agents with built-in routing
-- **Load Balancing Ready**: Multiple instances of the same agent via `requestAgent`/`targetAgent` routing
-- **High-Dimensional Agent Calls**: Complex multi-agent workflows with automatic routing
+- **Multi-Agent Architecture**: Single endpoint supports multiple agents with agent identification at protocol level
+- **Agent-Centric Routing**: Identify request source and target at protocol level with `requestAgent`/`targetAgent` fields
+- **Workflow Tracing**: End-to-end traceability across multi-agent processes via `traceId`, designed for integration with monitoring platforms
 - **Unified Deployment**: Host different agent types on single URL with agent-level routing
-- **Workflow Tracing**: End-to-end traceability across multi-agent processes via `traceId`
-- **Agent-Centric Routing**: Built-in agent identification and routing at protocol level
 - **Stateless Design**: Each request is independent with no session state
 - **Lightweight**: Minimal overhead with only essential fields
 - **Method-Based**: Clean RPC-style method invocation
-- **Transport Agnostic**: Works over HTTP, WebSockets, or any transport layer
+- **HTTPS Transport**: Works over HTTPS with POST requests
 - **Server-Sent Events**: Support for streaming responses via SSE
-- **Comprehensive Error Handling**: 500+ categorized error codes with detailed context for debugging and monitoring
 
 ### Why ARC?
 Existing protocols require complex infrastructure for multi-agent scenarios. ARC solves this with:
 
 #### **Multi-Agent Capabilities (Unique to ARC)**
-- **Single Endpoint, Multiple Agents**: Deploy 10s or 100s of agents behind `https://company.com/arc`
-- **Built-in Load Balancing**: Route to `finance-agent-01`, `finance-agent-02`, `finance-agent-03` automatically  
+- **Single Endpoint, Multiple Agents**: Deploy multiple agents behind `https://company.com/arc`
+- **Agent-Level Routing**: Route to specific agents via `requestAgent` and `targetAgent` fields
 - **Cross-Agent Workflows**: Agent A → Agent B → Agent C with full traceability via `traceId`
-- **Unified Agent Management**: No need for service discovery or complex routing infrastructure
-
-#### **Missing in Other Protocols**
-- **JSON-RPC 2.0**: No agent routing, manual endpoint management, no workflow tracing
-- **gRPC**: Service-per-endpoint, complex load balancing setup, no built-in agent concepts
-- **REST**: Resource-oriented, not agent-oriented, manual workflow correlation
+- **Unified Agent Management**: Simplified agent communication with consistent protocol
 
 ---
 
@@ -58,19 +50,19 @@ Existing protocols require complex infrastructure for multi-agent scenarios. ARC
 - **Simplicity**: Easy to understand, implement, and debug
 - **Agent-Focused**: Designed specifically for autonomous agent communication
 - **Performance**: Low latency and minimal bandwidth overhead
-- **Scalability**: Support for large-scale agent ecosystems
-- **Security**: Built-in authentication and authorization patterns
-- **Observability**: Comprehensive tracing and monitoring capabilities
+- **Scalability**: Support for multi-agent systems
+- **Security**: Authentication and authorization patterns
+- **Observability**: Workflow tracing for integration with monitoring platforms
 - **RPC Foundation**: Leverages proven RPC patterns for reliability
 - **Extensible**: Optional fields allow protocol evolution without breaking changes
-- **Robust Error Handling**: Detailed, categorized error codes enable precise debugging and system monitoring
+- **Error Handling**: Categorized error codes for debugging and monitoring
 
 ---
 
 ## Protocol Architecture
 
 ### Transport Layer
-- **Protocol**: HTTPS (required for production)
+- **Protocol**: HTTPS
 - **Method**: POST only
 - **Endpoint**: `/arc` (recommended)
 - **Content-Type**: `application/arc+json` for standard responses or `text/event-stream` for SSE streaming responses
@@ -78,18 +70,18 @@ Existing protocols require complex infrastructure for multi-agent scenarios. ARC
 
 ARC follows a **stateless RPC pattern** where:
 - Each request is a complete, self-contained message
-- Agents are identified at the protocol level (not buried in params)
+- Agents are identified at the protocol level via `requestAgent` and `targetAgent` fields
 - Single endpoint handles all communication (`/arc`)
-- HTTPS required for production deployments
+- HTTPS is used for transport security
 - OAuth 2.0 Bearer tokens recommended for authentication
-- Optional distributed tracing for workflow correlation
+- Workflow tracing via `traceId` for integration with monitoring platforms
 
 ```
-┌─────────────────┐    HTTP POST /arc    ┌─────────────────┐
+┌─────────────────┐    HTTPS POST /arc   ┌─────────────────┐
 │   Agent A       │ ────────────────────> │   Agent B       │
 │ (requestAgent)  │                       │ (targetAgent)   │
 └─────────────────┘ <──────────────────── └─────────────────┘
-                       HTTP Response
+                      HTTPS Response
 ```
 
 ### Multi-Agent Server Architecture
@@ -849,14 +841,6 @@ scopes: "arc.chat.controller arc.agent.receiver"
 scopes: "arc.task.notify arc.chat.controller arc.agent.receiver"
 ```
 
-### Security Best Practices
-- **HTTPS Required**: HTTPS must be used for production deployments
-- **OAuth2 Recommended**: OAuth 2.0 Bearer tokens should be used for authentication
-- **Token Validation**: Validate access tokens on every request
-- **Agent Authorization**: Verify agent permissions before processing
-- **Rate Limiting**: Implement per-agent rate limiting
-- **Audit Logging**: Log all agent communications for compliance
-
 ---
 
 ## Implementation Examples
@@ -1008,75 +992,32 @@ data: {"chatId": "chat-abc456", "status": "ACTIVE", "done": true}
 
 ## Comparison to Existing Protocols
 
-| Feature | ARC | ACP (Agent Communication Protocol) | A2A (Agent-to-Agent) | JSON-RPC 2.0 | gRPC | REST |
-|---------|-----|-----------------------------------|----------------------|---------------|------|------|
-| **Agent Routing** | ✅ Built-in | ✅ REST-based | ✅ Built-in | ❌ Manual | ❌ Manual | ❌ Manual |
-| **Workflow Tracing** | ✅ Native | ✅ Built-in | ✅ Task tracking | ❌ Custom | ⚠️ External | ❌ Custom |
-| **Learning Curve** | ✅ Simple | ✅ Simple | ✅ Moderate | ✅ Simple | ❌ Complex | ✅ Simple |
-| **Transport** | ✅ Agnostic | ✅ REST/HTTP | ✅ HTTP/SSE | ✅ Agnostic | ❌ HTTP/2 only | ❌ HTTP only |
-| **Schema Evolution** | ✅ Versioned | ✅ MIME-based | ✅ Versioned | ❌ Brittle | ✅ Proto | ⚠️ Versioned |
-| **Error Handling** | ✅ Rich | ✅ Rich | ✅ Rich | ⚠️ Basic | ✅ Rich | ⚠️ HTTP codes |
-| **Real-time Support** | ✅ Streaming | ✅ Streaming | ✅ SSE/Webhook | ❌ Limited | ✅ Streaming | ❌ Polling |
-| **Agent Discovery** | ✅ Separate API | ✅ Offline discovery | ✅ Agent Cards | ❌ None | ❌ None | ✅ REST API |
-| **Governance** | Open | Linux Foundation | Google-led | Open | Google-led | Open |
-| **Multimodal Support** | ✅ Yes | ✅ Native | ✅ Yes | ❌ Limited | ⚠️ With extensions | ⚠️ Manual |
-| **Authentication** | OAuth 2.0 | Multiple | OAuth/JWT | ❌ Custom | ⚠️ Plugin | ⚠️ Custom |
+### Agent Protocol Comparison
+
+| Feature | ARC | ACP (Agent Communication Protocol) | A2A (Agent-to-Agent) |
+|---------|-----|-----------------------------------|----------------------|
+| **Primary Purpose** | Agent communication standard | Agent lifecycle management | Agent interoperability |
+| **Agent Identification** | `requestAgent`/`targetAgent` fields | Agent URI | Agent Cards |
+| **Workflow Tracing** | `traceId` for monitoring integration | Built-in tracing | Task tracking |
+| **Message Format** | JSON-based | REST/MIME-based | JSON-based |
+| **Transport** | HTTPS | REST/HTTP | HTTP/SSE |
+| **Real-time Support** | SSE streaming | Streaming | SSE/Webhook |
+| **Agent Discovery** | Separate API | Offline discovery | Agent Cards |
+| **Authentication** | OAuth 2.0 | Multiple methods | OAuth/JWT |
+| **Governance** | Open | Linux Foundation | Google-led |
+| **Multimodal Support** | Multiple part types | Native | Multiple formats |
+| **Current Status** | Active development | Active development | Active development |
 
 ### Key Advantages of ARC
 
-1. **Agent-First Design**: Unlike generic RPC protocols, ARC is purpose-built for agent communication with built-in routing and workflow tracing
-2. **Lightweight & Focused**: ARC provides a minimal yet powerful protocol specifically designed for multi-agent ecosystems
-3. **Built-in Routing**: No need for custom routing logic - agents are first-class protocol citizens
-4. **Workflow Tracing**: Native support for distributed tracing across multi-agent workflows
-5. **Flexibility**: Works over any transport while maintaining consistency
-
-### Comparison with ACP and A2A
-
-**ACP (Agent Communication Protocol)**:
-- Developed by IBM through the Linux Foundation's BeeAI project
-- REST-native with rich multimodal messaging support
-- Offline agent discovery and extensible MIME-type messaging
-- Supports both stateful and stateless agent architectures
-- More focused on comprehensive agent lifecycle management
-
-**A2A (Agent-to-Agent Protocol)**:
-- Developed by Google with support from 50+ technology partners
-- Uses Agent Cards for capability discovery and JSON-RPC for communication
-- Strong enterprise integration focus with robust security features
-- Task-centric with well-defined state transitions
-- Deep integration with existing enterprise workflows
+1. **Agent-First Design**: Unlike generic communication specifications, ARC is purpose-built for agent communication with agent-level routing and workflow tracing
+2. **Lightweight & Focused**: ARC provides a minimal yet powerful protocol specifically designed for multi-agent systems
+3. **Agent-Centric Routing**: Identify request source and target at protocol level with `requestAgent`/`targetAgent` fields
+4. **Workflow Tracing**: Support for tracing across multi-agent workflows, designed for integration with monitoring platforms
 
 ---
 
-## Implementation Guidelines
-
-### Server Implementation
-1. **Single Endpoint**: Implement `/arc` endpoint for all ARC communication
-2. **Agent Registry**: Maintain mapping of agent IDs to handlers
-3. **Authentication**: Validate OAuth2 tokens before processing
-4. **Routing**: Use `targetAgent` field to route to correct agent
-5. **Tracing**: Preserve `traceId` across agent calls
-6. **SSE Support**: Use `text/event-stream` content type and simplified message format when `stream=true` parameter is received
-7. **Error Handling**: Return structured error responses
-
-### Client Implementation  
-1. **Agent Identification**: Include accurate `requestAgent` in all calls
-2. **ID Generation**: Generate unique request IDs for correlation
-3. **Timeout Handling**: Implement reasonable timeouts for async tasks
-4. **Retry Logic**: Retry on network errors, not business logic errors
-5. **SSE Handling**: Parse simplified message format in server-sent events when using streaming responses
-6. **Tracing**: Propagate `traceId` in multi-agent workflows
-
-### Best Practices
-- **Agent Naming**: Use consistent, descriptive agent ID patterns (`service-function-instance`)
-- **Method Versioning**: Include version in method names when needed (`task.create.v2`)
-- **Graceful Degradation**: Handle missing optional fields gracefully
-- **Documentation**: Document custom metadata fields and their usage
-- **Monitoring**: Track request/response times, error rates, and agent health
-
----
-
-**ARC Protocol v1.0** - The future of agent communication is here. 🚀
-*A stateless, light-weight remote procedure call (RPC) protocol for enterprise agent communication*
+**ARC Protocol v1.0** - Agent Remote Communication Protocol
+*A stateless, lightweight remote procedure call (RPC) protocol for multi-agent systems with workflow tracing capabilities*
 
 Copyright © 2025. Licensed under Apache License 2.0.

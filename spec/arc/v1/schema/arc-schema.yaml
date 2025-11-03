@@ -3,16 +3,16 @@ info:
   title: ARC Protocol - Agent Remote Communication
   version: "1.0"
   description: |
-    ARC (Agent Remote Communication) is the first RPC protocol that solves multi-agent 
-    deployment complexity with built-in agent routing, load balancing, and workflow tracing. 
+    ARC (Agent Remote Communication) is a communication standard between agents that solves 
+    multi-agent deployment complexity with agent-level routing and workflow tracing capabilities. 
     Deploy hundreds of different agent types on a single endpoint with zero infrastructure overhead.
     
     ## Key Features
-    - Single endpoint supports multiple agents with built-in routing
-    - Load balancing ready via requestAgent/targetAgent routing  
-    - Complex multi-agent workflows with automatic routing
+    - Single endpoint supports multiple agents with agent identification at protocol level
+    - Agent-centric routing via requestAgent/targetAgent fields
     - End-to-end workflow tracing via traceId
-    - OAuth2 scopes for fine-grained agent permissions
+    - Stateless design with no session state
+    - OAuth2 scopes for agent permissions
     
     ## How It Works
     All communication happens through the `/arc` endpoint using POST requests. The `method` field 
@@ -28,9 +28,9 @@ info:
 
 servers:
   - url: https://api.example.com/arc
-    description: Production ARC endpoint
-  - url: http://localhost:8080/arc
-    description: Development ARC endpoint
+    description: Production ARC endpoint (HTTPS required for production)
+  - url: https://localhost:8080/arc
+    description: Development ARC endpoint (HTTPS recommended)
 
 paths:
   # Task Methods - Asynchronous agent operations

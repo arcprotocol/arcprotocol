@@ -15,7 +15,11 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"**/*.{ts,json,md}\"",
     "docs": "typedoc --out docs/api src",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "generate:types": "ts-node src/utils/schema-to-types.ts",
+    "generate:openrpc": "ts-node src/utils/schema-to-openrpc.ts",
+    "generate:all": "npm run generate:types && npm run generate:openrpc",
+    "version:update": "./scripts/update-version.sh"
   },
   "repository": {
     "type": "git",
@@ -35,19 +39,22 @@
     "url": "https://github.com/arcprotocol/arcprotocol/issues"
   },
   "homepage": "https://github.com/arcprotocol/arcprotocol#readme",
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "openapi-types": "^12.1.3"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.3",
-    "@types/node": "^20.4.5",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.19.24",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
     "eslint": "^8.45.0",
     "jest": "^29.6.1",
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.1",
     "typedoc": "^0.24.8",
     "typescript": "^5.1.6"
-  },
-  "dependencies": {
-    "openapi-types": "^12.1.3"
   }
 }

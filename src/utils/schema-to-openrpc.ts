@@ -10,8 +10,8 @@ import * as yaml from 'js-yaml';
 import { OpenAPIV3 } from 'openapi-types';
 
 // Paths
-const OPENAPI_SCHEMA_PATH = path.join(__dirname, '../../specification/schema/arc-schema.yaml');
-const OPENRPC_OUTPUT_PATH = path.join(__dirname, '../../specification/schema/arc-openrpc.json');
+const OPENAPI_SCHEMA_PATH = path.join(__dirname, '../../spec/arc/v1/schema/arc-schema.yaml');
+const OPENRPC_OUTPUT_PATH = path.join(__dirname, '../../spec/arc/v1/schema/arc-openrpc.json');
 
 /**
  * Convert OpenAPI components to OpenRPC schemas
@@ -424,6 +424,17 @@ function getResultDescription(method: string): string {
  */
 async function generateOpenRPCSchema(): Promise<void> {
   try {
+    console.log(`Reading OpenAPI schema from ${OPENAPI_SCHEMA_PATH}`);
+    
+    // Check if file exists
+    try {
+      await fs.access(OPENAPI_SCHEMA_PATH);
+    } catch (error) {
+      console.error(`Error: OpenAPI schema file not found at ${OPENAPI_SCHEMA_PATH}`);
+      console.error('Please make sure the file exists at the correct location.');
+      process.exit(1);
+    }
+    
     // Read OpenAPI schema
     const openApiContent = await fs.readFile(OPENAPI_SCHEMA_PATH, 'utf-8');
     const openApiSchema = yaml.load(openApiContent) as OpenAPIV3.Document;
@@ -446,6 +457,9 @@ async function generateOpenRPCSchema(): Promise<void> {
       methods: convertPathsToMethods(openApiSchema.paths || {}),
       components: convertComponents(openApiSchema.components || {})
     };
+    
+    // Ensure output directory exists
+    await fs.mkdir(path.dirname(OPENRPC_OUTPUT_PATH), { recursive: true });
     
     // Write OpenRPC schema
     await fs.writeFile(
