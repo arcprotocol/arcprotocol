@@ -6,6 +6,10 @@
 
 **ARC (Agent Remote Communication)** is a communication standard between agents for multi-agent systems. The protocol enables hosting multiple agent types on a single endpoint with agent-level routing via `requestAgent` and `targetAgent` fields, and provides workflow tracing capabilities.
 
+### Post-Quantum End-to-End Encryption
+
+ARC Protocol implements post-quantum end-to-end encryption using hybrid TLS (X25519Kyber768), combining classical elliptic curve cryptography with NIST-standardized Module-Lattice-Based Key Encapsulation Mechanism (ML-KEM, FIPS 203). This hybrid approach provides protection against both current and future quantum computing attacks.
+
 > For an overview of the ARC ecosystem and our vision, visit our [main GitHub organization page](https://github.com/arcprotocol).
 
 ## Key Features
@@ -19,6 +23,35 @@
 - **Server-Sent Events**: Support for streaming responses via SSE
 - **Python SDK**: Python implementation of the ARC Protocol [Python SDK](https://github.com/arcprotocol/python-sdk)
 
+## Hybrid TLS Implementation
+
+### What is Hybrid TLS?
+
+Combines classical and post-quantum cryptography:
+- **Classical**: X25519 (Curve25519 elliptic curve)
+- **Post-Quantum**: Kyber-768 (NIST FIPS 203 ML-KEM)
+
+**Result**: Secure against both current and future quantum attacks.
+
+**Default**: `x25519_kyber768` (X25519 + Kyber-768)
+
+**Industry Implementations**:
+- **Zoom**: Uses Kyber-768 for E2EE (May 2024)
+- **Chrome**: Uses X25519Kyber768 hybrid for TLS (Aug 2023)
+- **Cloudflare**: Uses X25519MLKEM768 hybrid for TLS (2022)
+
+### How It Works
+
+**Requirements**: Both client and server must install `arc-sdk[pqc]` for post-quantum cryptography.
+
+**TLS Handshake**:
+- Both sides have PQC → Negotiates `x25519_kyber768` hybrid key exchange
+- One side missing PQC → OpenSSL falls back to classical X25519
+
+**Process**:
+1. Install: `pip install arc-sdk[pqc]` builds cryptography libraries
+2. Import: Libraries load automatically
+3. Connect: Hybrid TLS negotiated during handshake
 
 ## Documentation
 
