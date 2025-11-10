@@ -6,9 +6,8 @@
 
 **ARC (Agent Remote Communication)** is a communication standard between agents for multi-agent systems. The protocol enables hosting multiple agent types on a single endpoint with agent-level routing via `requestAgent` and `targetAgent` fields, and provides workflow tracing capabilities.
 
-### Post-Quantum End-to-End Encryption
-
-ARC Protocol implements post-quantum end-to-end encryption using hybrid TLS (X25519Kyber768), combining classical elliptic curve cryptography with NIST-standardized Module-Lattice-Based Key Encapsulation Mechanism (ML-KEM, FIPS 203). This hybrid approach provides protection against both current and future quantum computing attacks.
+> [!IMPORTANT]
+> **Quantum-Resistant Security**: ARC Protocol implements post-quantum end-to-end encryption using hybrid TLS (X25519Kyber768), combining classical elliptic curve cryptography with NIST-standardized Module-Lattice-Based Key Encapsulation Mechanism (ML-KEM, FIPS 203). This provides protection against both current and future quantum computing attacks.
 
 > For an overview of the ARC ecosystem and our vision, visit our [main GitHub organization page](https://github.com/arcprotocol).
 
@@ -42,16 +41,20 @@ Combines classical and post-quantum cryptography:
 
 ### How It Works
 
-**Requirements**: Both client and server must install `arc-sdk[pqc]` for post-quantum cryptography.
+> [!NOTE]
+> **Requirements**: Both client and server must install `arc-sdk[pqc]` for post-quantum cryptography.
 
 **TLS Handshake**:
 - Both sides have PQC → Negotiates `x25519_kyber768` hybrid key exchange
 - One side missing PQC → OpenSSL falls back to classical X25519
 
-**Process**:
-1. Install: `pip install arc-sdk[pqc]` builds cryptography libraries
-2. Import: Libraries load automatically
-3. Connect: Hybrid TLS negotiated during handshake
+**Installation**:
+```bash
+pip install arc-sdk[pqc]
+```
+
+> [!TIP]
+> Libraries load automatically - no manual configuration needed. Hybrid TLS is negotiated during the handshake.
 
 ## Documentation
 
@@ -64,7 +67,8 @@ Combines classical and post-quantum cryptography:
 
 ## ARC Ecosystem
 
-While ARC Protocol can be used as a standalone communication protocol between agents, it works best as part of the ARC ecosystem:
+> [!NOTE]
+> While ARC Protocol can be used as a standalone communication protocol between agents, it works best as part of the ARC ecosystem.
 
 - **[ARC Protocol](https://github.com/arcprotocol/arcprotocol)**: This repository - the communication standard between agents
 - **[ARC Compass](https://github.com/arcprotocol/arccompass)**: Agent search engine that finds appropriate agents without ranking algorithms
